@@ -2,47 +2,47 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from common.permissions import IsOwner
-from .models import Resource
-from .serializers import ResourceSerializer
+from .models import AutomationTask
+from .serializers import AutomationTaskSerializer
 from .selectors import resource_selectors
 from .services import resource_services
 
-class ResourceViewSet(viewsets.ModelViewSet):
+class AutomationTaskViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para visualizar e editar recursos usando Service Layer e Selectors.
+    ViewSet para gerenciar tarefas de automação (AI Orchestration).
     """
-    serializer_class = ResourceSerializer
+    serializer_class = AutomationTaskSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         """
-        Utiliza o selector para filtrar recursos do usuário.
+        Retorna as tarefas do usuário autenticado.
         """
         if getattr(self, 'swagger_fake_view', False):
-            return Resource.objects.none()
+            return AutomationTask.objects.none()
             
-        return resource_selectors.resource_list_for_user(user=self.request.user)
+        return resource_selectors.task_list_for_user(user=self.request.user)
 
     def perform_create(self, serializer):
         """
-        Utiliza o service para criar um novo recurso.
+        Cria uma nova tarefa usando o service.
         """
-        resource_services.resource_create(
+        resource_services.task_create(
             user=self.request.user,
             **serializer.validated_data
         )
 
     def perform_update(self, serializer):
         """
-        Utiliza o service para atualizar um recurso existente.
+        Atualiza a tarefa usando o service.
         """
-        resource_services.resource_update(
-            resource=self.instance if hasattr(self, 'instance') else self.get_object(),
+        resource_services.task_update(
+            task=self.get_object(),
             **serializer.validated_data
         )
 
     def perform_destroy(self, instance):
         """
-        Utiliza o service para deletar um recurso.
+        Deleta a tarefa usando o service.
         """
-        resource_services.resource_delete(resource=instance)
+        resource_services.task_delete(task=instance)

@@ -1,12 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ResourceViewSet
+from .views import AutomationTaskViewSet
 
-# Cria um roteador e registra nosso viewset com ele.
 router = DefaultRouter()
-router.register(r'resources', ResourceViewSet, basename='resource')
+router.register(r'tasks', AutomationTaskViewSet, basename='tasks')
 
-# As URLs da API agora são determinadas automaticamente pelo roteador.
 urlpatterns = [
     path('', include(router.urls)),
 ]

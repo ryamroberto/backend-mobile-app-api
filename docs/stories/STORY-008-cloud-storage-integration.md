@@ -1,6 +1,6 @@
 # Story 2.2: Integração com Armazenamento em Nuvem (S3/Cloud Storage)
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Desenvolvedor DevOps,

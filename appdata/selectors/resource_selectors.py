@@ -1,16 +1,15 @@
 from django.db.models import QuerySet
-from ..models import Resource
+from ..models import AutomationTask
 from users.models import User
 
-def resource_list_for_user(*, user: User) -> QuerySet[Resource]:
+def task_list_for_user(*, user: User) -> QuerySet[AutomationTask]:
     """
-    Retorna a lista de recursos pertencentes a um usuário específico.
+    Retorna a lista de tarefas de automação pertencentes a um usuário específico.
     """
-    return Resource.objects.filter(owner=user)
+    return AutomationTask.objects.filter(owner=user)
 
-def resource_get_by_id(*, user: User, resource_id: str) -> Resource:
+def task_get_by_id(*, user: User, task_id: str) -> AutomationTask:
     """
-    Retorna um recurso específico pertencente a um usuário.
-    Levanta Resource.DoesNotExist se não encontrado.
+    Retorna uma tarefa específica pertencente a um usuário.
     """
-    return Resource.objects.get(owner=user, id=resource_id)
+    return AutomationTask.objects.get(owner=user, id=task_id)

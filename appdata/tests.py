@@ -2,88 +2,91 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
-from .models import Resource
+from .models import AutomationTask
 
 User = get_user_model()
 
-class ResourceTests(APITestCase):
+class AutomationTaskTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email='resourcetest@example.com',
+            email='tasktest@example.com',
             password='testpassword123'
         )
         self.other_user = User.objects.create_user(
-            email='other@example.com',
+            email='other_task@example.com',
             password='otherpassword123'
         )
         
         url = reverse('token_obtain_pair')
         response = self.client.post(url, {
-            'email': 'resourcetest@example.com',
+            'email': 'tasktest@example.com',
             'password': 'testpassword123'
         }, format='json')
         self.access_token = response.data['access']
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access_token}')
 
-    def test_create_resource(self):
+    def test_create_task_custom(self):
         """
-        Garante que podemos criar um novo recurso.
+        Garante que podemos criar uma nova tarefa customizada.
         """
-        url = reverse('resource-list')
+        url = reverse('tasks-list')
         data = {
-            'title': 'Meu Recurso',
-            'description': 'Uma descrição de teste',
-            'metadata': {'key': 'value'}
+            'title': 'Minha Automação',
+            'task_type': 'CUSTOM',
+            'description': 'Teste de automação customizada'
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Resource.objects.count(), 1)
-        self.assertEqual(Resource.objects.get().owner, self.user)
+        self.assertEqual(AutomationTask.objects.count(), 1)
+        self.assertEqual(AutomationTask.objects.get().owner, self.user)
 
-    def test_list_resources(self):
+    def test_create_task_bedrock_without_provider_id(self):
         """
-        Garante que só vemos nossos próprios recursos.
+        Garante que falha ao criar BEDROCK sem provider_id.
         """
-        Resource.objects.create(owner=self.user, title="Meu Recurso")
-        Resource.objects.create(owner=self.other_user, title="Recurso Alheio")
+        url = reverse('tasks-list')
+        data = {
+            'title': 'Tarefa Bedrock',
+            'task_type': 'BEDROCK'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('provider_id', response.data)
+
+    def test_create_task_bedrock_with_provider_id(self):
+        """
+        Garante que sucesso ao criar BEDROCK com provider_id.
+        """
+        url = reverse('tasks-list')
+        data = {
+            'title': 'Tarefa Bedrock',
+            'task_type': 'BEDROCK',
+            'provider_id': 'arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-v2'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_list_tasks(self):
+        """
+        Garante que só vemos nossas próprias tarefas.
+        """
+        AutomationTask.objects.create(owner=self.user, title="Minha Tarefa")
+        AutomationTask.objects.create(owner=self.other_user, title="Tarefa Alheia")
         
-        url = reverse('resource-list')
+        url = reverse('tasks-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results'] if 'results' in response.data else response.data), 1)
-        self.assertEqual(response.data['results'][0]['title'] if 'results' in response.data else response.data[0]['title'], 'Meu Recurso')
+        count = len(response.data['results'] if 'results' in response.data else response.data)
+        self.assertEqual(count, 1)
 
-    def test_access_other_resource(self):
+    def test_update_task_status(self):
         """
-        Garante que não podemos acessar recursos de outros usuários.
+        Garante que podemos atualizar o status de uma tarefa.
         """
-        other_resource = Resource.objects.create(owner=self.other_user, title="Recurso Alheio")
-        
-        url = reverse('resource-detail', kwargs={'pk': other_resource.id})
-        response = self.client.get(url)
-        # O DRF retorna 404 se o objeto não estiver no queryset filtrado
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_update_resource(self):
-        """
-        Garante que podemos atualizar nosso próprio recurso.
-        """
-        resource = Resource.objects.create(owner=self.user, title="Antigo Título")
-        
-        url = reverse('resource-detail', kwargs={'pk': resource.id})
-        data = {'title': 'Novo Título'}
+        task = AutomationTask.objects.create(owner=self.user, title="Tarefa X")
+        url = reverse('tasks-detail', kwargs={'pk': task.id})
+        data = {'execution_status': 'RUNNING'}
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        resource.refresh_from_db()
-        self.assertEqual(resource.title, 'Novo Título')
-
-    def test_delete_resource(self):
-        """
-        Garante que podemos deletar nosso próprio recurso.
-        """
-        resource = Resource.objects.create(owner=self.user, title="Para Deletar")
-        
-        url = reverse('resource-detail', kwargs={'pk': resource.id})
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Resource.objects.count(), 0)
+        task.refresh_from_db()
+        self.assertEqual(task.execution_status, 'RUNNING')

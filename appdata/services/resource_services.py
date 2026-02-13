@@ -1,59 +1,65 @@
 from typing import Any, Dict
 from django.db import transaction
-from ..models import Resource
+from ..models import AutomationTask
 from users.models import User
 
 @transaction.atomic
-def resource_create(
+def task_create(
     *,
     user: User,
     title: str,
     description: str = "",
-    status: str = Resource.Status.ACTIVE,
-    metadata: Dict[str, Any] = None
-) -> Resource:
+    task_type: str = AutomationTask.TaskType.CUSTOM,
+    provider_id: str = "",
+    input_params: Dict[str, Any] = None,
+    execution_status: str = AutomationTask.ExecutionStatus.PENDING
+) -> AutomationTask:
     """
-    Cria um novo recurso associado a um usuário.
+    Cria uma nova tarefa de automação associada a um usuário.
     """
-    if metadata is None:
-        metadata = {}
+    if input_params is None:
+        input_params = {}
         
-    resource = Resource(
+    task = AutomationTask(
         owner=user,
         title=title,
         description=description,
-        status=status,
-        metadata=metadata
+        task_type=task_type,
+        provider_id=provider_id,
+        input_params=input_params,
+        execution_status=execution_status
     )
-    resource.full_clean()
-    resource.save()
+    task.full_clean()
+    task.save()
     
-    return resource
+    return task
 
 @transaction.atomic
-def resource_update(
+def task_update(
     *,
-    resource: Resource,
+    task: AutomationTask,
     **data
-) -> Resource:
+) -> AutomationTask:
     """
-    Atualiza um recurso existente.
+    Atualiza uma tarefa de automação existente.
     """
-    # Lista de campos permitidos para atualização
-    update_fields = ['title', 'description', 'status', 'metadata']
+    update_fields = [
+        'title', 'description', 'task_type', 'provider_id', 
+        'execution_status', 'input_params', 'output_results'
+    ]
     
     for field in update_fields:
         if field in data:
-            setattr(resource, field, data[field])
+            setattr(task, field, data[field])
             
-    resource.full_clean()
-    resource.save()
+    task.full_clean()
+    task.save()
     
-    return resource
+    return task
 
 @transaction.atomic
-def resource_delete(*, resource: Resource) -> None:
+def task_delete(*, task: AutomationTask) -> None:
     """
-    Remove um recurso.
+    Remove uma tarefa.
     """
-    resource.delete()
+    task.delete()

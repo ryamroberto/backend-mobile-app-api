@@ -1,6 +1,6 @@
 # Story 2.1: Refatoração para Service Layer e Selectors
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Arquiteto de Software,
