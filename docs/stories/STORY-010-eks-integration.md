@@ -1,6 +1,6 @@
 # Story 2.4: Integração EKS para Automation Tasks (Kubernetes Orchestration)
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Engenheiro de DevOps/IA,

@@ -6,8 +6,16 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import RegisterSerializer
 
+from django.conf import settings
+
 class AuthThrottle(AnonRateThrottle):
     scope = 'auth'
+
+    def allow_request(self, request, view):
+        # Permite desabilitar throttling em testes, a menos que explicitamente solicitado
+        if getattr(settings, 'DISABLE_THROTTLING', False):
+            return True
+        return super().allow_request(request, view)
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer

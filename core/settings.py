@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     'authentication',
     'profiles',
     'appdata',
+    'support',
     'common',
 ]
 
@@ -151,6 +153,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Throttling control for tests
+DISABLE_THROTTLING = 'test' in sys.argv
+
 # Django Rest Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -162,11 +167,11 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
-    ],
+    ] if 'test' not in sys.argv else [],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
         'user': '1000/day',
-        'auth': '5/minute',  # Rate limit para login/register
+        'auth': '5/minute',
     }
 }
 
