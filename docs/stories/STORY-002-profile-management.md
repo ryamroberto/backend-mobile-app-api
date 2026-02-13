@@ -1,6 +1,6 @@
 # Story 1.2: Gestão de Perfil de Usuário e Criação Automática
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Usuário do Sistema,

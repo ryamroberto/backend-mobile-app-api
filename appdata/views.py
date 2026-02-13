@@ -1,29 +1,48 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from common.permissions import IsOwner
 from .models import Resource
 from .serializers import ResourceSerializer
+from .selectors import resource_selectors
+from .services import resource_services
 
 class ResourceViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para visualizar e editar recursos.
+    ViewSet para visualizar e editar recursos usando Service Layer e Selectors.
     """
     serializer_class = ResourceSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         """
-        Este viewset deve retornar uma lista de todos os recursos
-        para o usuário autenticado no momento.
+        Utiliza o selector para filtrar recursos do usuário.
         """
         if getattr(self, 'swagger_fake_view', False):
             return Resource.objects.none()
             
-        user = self.request.user
-        return Resource.objects.filter(owner=user)
+        return resource_selectors.resource_list_for_user(user=self.request.user)
 
     def perform_create(self, serializer):
         """
-        Associa o usuário autenticado como proprietário ao criar um novo recurso.
+        Utiliza o service para criar um novo recurso.
         """
-        serializer.save(owner=self.request.user)
+        resource_services.resource_create(
+            user=self.request.user,
+            **serializer.validated_data
+        )
+
+    def perform_update(self, serializer):
+        """
+        Utiliza o service para atualizar um recurso existente.
+        """
+        resource_services.resource_update(
+            resource=self.instance if hasattr(self, 'instance') else self.get_object(),
+            **serializer.validated_data
+        )
+
+    def perform_destroy(self, instance):
+        """
+        Utiliza o service para deletar um recurso.
+        """
+        resource_services.resource_delete(resource=instance)

@@ -1,6 +1,6 @@
 # Story 1.4: Documentação da API (Swagger/OpenAPI) e Ajustes Globais
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Desenvolvedor de Frontend/Mobile,

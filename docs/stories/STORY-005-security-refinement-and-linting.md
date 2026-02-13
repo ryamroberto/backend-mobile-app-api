@@ -1,6 +1,6 @@
 # Story 1.5: Refinamento de Segurança, Throttling e Qualidade de Código
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Administrador do Sistema,

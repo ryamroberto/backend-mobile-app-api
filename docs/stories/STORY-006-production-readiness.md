@@ -1,6 +1,6 @@
 # Story 1.6: Infraestrutura, Dockerização e Preparação para Produção
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** DevOps Engineer / Desenvolvedor,
