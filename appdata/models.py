@@ -9,6 +9,7 @@ class AutomationTask(TimeStampedModel):
         BEDROCK = 'BEDROCK', 'Amazon Bedrock'
         STEP_FUNCTION = 'STEP_FUNCTION', 'AWS Step Function'
         ECS = 'ECS', 'Amazon ECS'
+        EKS = 'EKS', 'Elastic Kubernetes Service'
         CUSTOM = 'CUSTOM', 'Custom Automation'
 
     class ExecutionStatus(models.TextChoices):

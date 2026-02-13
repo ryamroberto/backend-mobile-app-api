@@ -1,6 +1,6 @@
 # Story 2.3: Implementação do Domínio de Orquestração (Automation Tasks)
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Desenvolvedor/Operador de IA,
