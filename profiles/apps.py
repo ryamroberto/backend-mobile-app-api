@@ -7,4 +7,4 @@ class ProfilesConfig(AppConfig):
     verbose_name = 'Perfis'
 
     def ready(self):
-        import profiles.signals
+        import profiles.signals  # noqa: F401

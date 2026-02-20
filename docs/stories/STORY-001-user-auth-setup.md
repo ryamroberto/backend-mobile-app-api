@@ -1,6 +1,6 @@
 # Story 1.1: Configuração do Modelo de Usuário Customizado e Autenticação JWT
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Desenvolvedor,

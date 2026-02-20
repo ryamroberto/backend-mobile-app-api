@@ -1,6 +1,6 @@
 # Story 1.3: Implementação do Domínio de Negócio (AppData) e CRUD de Recursos
 
-**Status**: Ready for Review
+**Status**: Completed
 
 ## Story
 **As a** Usuário Autenticado,
