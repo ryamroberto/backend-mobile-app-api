@@ -47,6 +47,9 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
 
+# Versão da aplicação
+APP_VERSION = os.getenv('APP_VERSION', '1.7.0')
+
 
 # Application definition
 

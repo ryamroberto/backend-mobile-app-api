@@ -4,10 +4,15 @@ on:
   pull_request:
     branches:
       - master
+      - develop
   push:
     branches:
       - master
+      - develop
       - feature/**
+
+env:
+  PIP_CACHE_DIR: ~/.cache/pip
 
 jobs:
   lint:
@@ -15,49 +20,149 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
+          cache: 'pip'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PIP_CACHE_DIR }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      
       - name: Run lint
         run: python -m ruff check .
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+      fail-fast: false
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PIP_CACHE_DIR }}
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-py${{ matrix.python-version }}-pip-
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      
       - name: Run tests
-        run: python manage.py test --verbosity 1
+        run: |
+          export DB_TYPE=postgres
+          export DB_NAME=test_db
+          export DB_USER=test_user
+          export DB_PASSWORD=test_password
+          export DB_HOST=localhost
+          export DB_PORT=5432
+          export SECRET_KEY=test-secret-key
+          export DEBUG=False
+          python manage.py test --verbosity 2
+        
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: |
+            test-results/
+            *.log
+          retention-days: 7
 
   typecheck:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
       - name: Syntax/type sanity check
         run: python -m py_compile $(git ls-files '*.py')
+      
+      - name: Check Python AST
+        run: |
+          for file in $(git ls-files '*.py'); do
+            python -c "import ast; ast.parse(open('$file').read())" || exit 1
+          done
 
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
       - name: Build Docker image
-        run: docker build -t backend-mobile-app-api:ci .
+        run: |
+          docker build \
+            -t backend-mobile-app-api:ci \
+            -t backend-mobile-app-api:${{ github.sha }} \
+            .
+      
+      - name: Test Docker image
+        run: |
+          docker run --rm backend-mobile-app-api:ci python manage.py check
+      
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-ci
+          path: /tmp/docker-image.tar
+          retention-days: 1
+      
+      - name: Image info
+        run: |
+          docker images backend-mobile-app-api

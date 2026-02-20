@@ -1,0 +1,166 @@
+name: CD - Deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente de deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-staging:
+    name: Deploy Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.example.com
+    if: github.event_name == 'push' || github.event.inputs.environment == 'staging'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest image on server
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+            cd /opt/backend-mobile-app
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          EOF
+
+      - name: Deploy to staging
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+            cd /opt/backend-mobile-app
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          EOF
+
+      - name: Wait for application to be ready
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            echo "Aguardando aplicação ficar pronta..."
+            for i in {1..30}; do
+              if curl -sf http://localhost:8000/health/ > /dev/null 2>&1; then
+                echo "Aplicação está saudável!"
+                exit 0
+              fi
+              echo "Tentativa $i/30 - aguardando..."
+              sleep 5
+            done
+            echo "Falha no health check após 30 tentativas"
+            exit 1
+          EOF
+
+      - name: Run health check
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            curl -sf http://localhost:8000/health/ | python3 -m json.tool
+          EOF
+
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.example.com
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    needs: deploy-staging
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest image on server
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+            cd /opt/backend-mobile-app
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          EOF
+
+      - name: Deploy to production
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            set -e
+            cd /opt/backend-mobile-app
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          EOF
+
+      - name: Wait for application to be ready
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            echo "Aguardando aplicação ficar pronta..."
+            for i in {1..30}; do
+              if curl -sf http://localhost:8000/health/ > /dev/null 2>&1; then
+                echo "Aplicação está saudável!"
+                exit 0
+              fi
+              echo "Tentativa $i/30 - aguardando..."
+              sleep 5
+            done
+            echo "Falha no health check após 30 tentativas"
+            exit 1
+          EOF
+
+      - name: Run health check
+        run: |
+          ssh ${{ secrets.DEPLOY_USERNAME }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            curl -sf http://localhost:8000/health/ | python3 -m json.tool
+          EOF
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Deploy em produção realizado com sucesso!"
+          echo "URL: https://api.example.com/health/"
