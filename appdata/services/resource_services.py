@@ -4,6 +4,7 @@ from ..models import AutomationTask
 from users.models import User
 from . import eks_services
 from .case_sync_services import sync_task_result_to_case
+from common.audit import log_task_creation, log_task_status_change
 
 @transaction.atomic
 def task_create(
@@ -22,7 +23,7 @@ def task_create(
     """
     if input_params is None:
         input_params = {}
-        
+
     task = AutomationTask(
         owner=user,
         title=title,
@@ -35,11 +36,14 @@ def task_create(
     )
     task.full_clean()
     task.save()
-    
+
+    # Log de auditoria: criação de tarefa
+    log_task_creation(task=task, user=user)
+
     # Se a tarefa for criada já como RUNNING, executa
     if execution_status == AutomationTask.ExecutionStatus.RUNNING:
         _trigger_task_execution(task)
-        
+
     return task
 
 @transaction.atomic
@@ -52,30 +56,39 @@ def task_update(
     Atualiza uma tarefa de automação existente.
     """
     old_status = task.execution_status
-    
+
     update_fields = [
-        'title', 'description', 'task_type', 'provider_id', 
+        'title', 'description', 'task_type', 'provider_id',
         'execution_status', 'input_params', 'output_results',
         'associated_case'
     ]
-    
+
     for field in update_fields:
         if field in data:
             setattr(task, field, data[field])
-            
+
     task.full_clean()
     task.save()
-    
+
+    # Log de auditoria: alteração de status
+    if old_status != task.execution_status:
+        log_task_status_change(
+            task=task,
+            old_status=old_status,
+            new_status=task.execution_status,
+            user=task.owner
+        )
+
     # Se o status mudou para RUNNING, dispara execução
     if old_status != AutomationTask.ExecutionStatus.RUNNING and \
        task.execution_status == AutomationTask.ExecutionStatus.RUNNING:
         _trigger_task_execution(task)
-    
+
     # Se o status mudou para COMPLETED ou FAILED, sincroniza com o caso se houver
     if old_status != task.execution_status and \
        task.execution_status in [AutomationTask.ExecutionStatus.COMPLETED, AutomationTask.ExecutionStatus.FAILED]:
         sync_task_result_to_case(task=task)
-    
+
     return task
 
 def _trigger_task_execution(task: AutomationTask) -> None:
