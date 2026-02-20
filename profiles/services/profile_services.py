@@ -1,4 +1,3 @@
-from typing import Any, Dict
 from django.db import transaction
 from ..models import Profile
 from users.models import User

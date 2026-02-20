@@ -1,7 +1,7 @@
-from typing import Any, Dict
 from django.db import transaction
 from ..models import ResolveCase
 from users.models import User
+from .case_automation_services import trigger_case_automation
 
 @transaction.atomic
 def case_create(
@@ -23,6 +23,10 @@ def case_create(
     )
     case.full_clean()
     case.save()
+    
+    # Dispara automação após commit bem-sucedido
+    transaction.on_commit(lambda: trigger_case_automation(case=case))
+    
     return case
 
 @transaction.atomic

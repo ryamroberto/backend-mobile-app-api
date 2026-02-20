@@ -1,4 +1,4 @@
-from django.db.models import QuerySet, Q
+from django.db.models import QuerySet
 from ..models import ResolveCase
 from users.models import User
 

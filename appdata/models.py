@@ -50,6 +50,15 @@ class AutomationTask(TimeStampedModel):
         default=ExecutionStatus.PENDING
     )
     
+    associated_case = models.ForeignKey(
+        'support.ResolveCase',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='automation_tasks',
+        verbose_name='caso associado'
+    )
+    
     input_params = models.JSONField('parâmetros de entrada', default=dict, blank=True)
     output_results = models.JSONField('resultados da saída', default=dict, blank=True)
 

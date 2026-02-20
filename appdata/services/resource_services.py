@@ -1,8 +1,9 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from django.db import transaction
 from ..models import AutomationTask
 from users.models import User
 from . import eks_services
+from .case_sync_services import sync_task_result_to_case
 
 @transaction.atomic
 def task_create(
@@ -13,7 +14,8 @@ def task_create(
     task_type: str = AutomationTask.TaskType.CUSTOM,
     provider_id: str = "",
     input_params: Dict[str, Any] = None,
-    execution_status: str = AutomationTask.ExecutionStatus.PENDING
+    execution_status: str = AutomationTask.ExecutionStatus.PENDING,
+    associated_case: Optional[Any] = None
 ) -> AutomationTask:
     """
     Cria uma nova tarefa de automação associada a um usuário.
@@ -28,7 +30,8 @@ def task_create(
         task_type=task_type,
         provider_id=provider_id,
         input_params=input_params,
-        execution_status=execution_status
+        execution_status=execution_status,
+        associated_case=associated_case
     )
     task.full_clean()
     task.save()
@@ -52,7 +55,8 @@ def task_update(
     
     update_fields = [
         'title', 'description', 'task_type', 'provider_id', 
-        'execution_status', 'input_params', 'output_results'
+        'execution_status', 'input_params', 'output_results',
+        'associated_case'
     ]
     
     for field in update_fields:
@@ -66,6 +70,11 @@ def task_update(
     if old_status != AutomationTask.ExecutionStatus.RUNNING and \
        task.execution_status == AutomationTask.ExecutionStatus.RUNNING:
         _trigger_task_execution(task)
+    
+    # Se o status mudou para COMPLETED ou FAILED, sincroniza com o caso se houver
+    if old_status != task.execution_status and \
+       task.execution_status in [AutomationTask.ExecutionStatus.COMPLETED, AutomationTask.ExecutionStatus.FAILED]:
+        sync_task_result_to_case(task=task)
     
     return task
 
@@ -81,6 +90,7 @@ def _trigger_task_execution(task: AutomationTask) -> None:
             task.execution_status = AutomationTask.ExecutionStatus.FAILED
             task.output_results = {"error": "Manifest YAML não fornecido em input_params."}
             task.save()
+            sync_task_result_to_case(task=task)
             return
 
         try:
@@ -95,6 +105,10 @@ def _trigger_task_execution(task: AutomationTask) -> None:
             task.output_results = {"error": str(e)}
         
         task.save()
+        sync_task_result_to_case(task=task)
+    
+    # Para CUSTOM e outros tipos que podem ser marcados como COMPLETED/FAILED manualmente
+    # a sincronização é feita no task_update.
 
 @transaction.atomic
 def task_delete(*, task: AutomationTask) -> None:
