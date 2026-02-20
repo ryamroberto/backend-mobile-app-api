@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run tests
-        run: python -m pytest -q
+        run: python manage.py test --verbosity 1
 
   typecheck:
     runs-on: ubuntu-latest
