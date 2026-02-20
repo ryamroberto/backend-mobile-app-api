@@ -83,3 +83,34 @@ Gemini 2.0 Flash
 - support/services/case_automation_services.py
 - support/tests_automation.py
 - requirements.txt (ajustada versão django-storages)
+
+## QA Results
+### Review Date
+2026-02-20
+
+### Reviewer
+Codex QA
+
+### Gate Decision
+FAIL
+
+### Summary
+AC1, AC2, AC3 e AC5 estao atendidos com evidencia em codigo e testes.
+AC4 nao esta atendido: o fluxo ainda propaga excecao quando a automacao falha no callback de `transaction.on_commit`.
+
+### Evidence
+- Modelo e migracao do `associated_case` implementados em `appdata/models.py` e `appdata/migrations/0004_automationtask_associated_case.py`.
+- Orquestracao de criacao automatica e mudanca para `IN_PROGRESS` em `support/services/case_automation_services.py`.
+- Sincronizacao de `COMPLETED`/`FAILED` para caso em `appdata/services/case_sync_services.py`.
+- Testes de integracao do fluxo em `support/tests_automation.py` (5/5 passando).
+- `ruff check appdata support` passando; `makemigrations --check --dry-run` sem mudancas.
+- Teste de resiliencia AC4 (simula indisponibilidade da automacao) resultou em excecao propagada:
+  - `RAISED=True`, `ERR=simulated appdata down`.
+
+### Findings
+- High: `transaction.on_commit(lambda: trigger_case_automation(case=case))` em `support/services/case_services.py:28` nao trata falhas do callback.
+- High: `trigger_case_automation` em `support/services/case_automation_services.py:12-35` nao encapsula `apps.get_model`/`task_create` com fallback seguro.
+- Medium: nao existe teste automatizado cobrindo indisponibilidade/falha do `appdata` no momento do trigger.
+
+### Recommendation
+Adicionar tratamento defensivo no callback de automacao (capturar excecoes, registrar log e manter o caso rastreavel sem quebrar o fluxo de criacao), e incluir teste de resiliencia para AC4.

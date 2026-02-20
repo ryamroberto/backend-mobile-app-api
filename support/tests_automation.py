@@ -113,3 +113,22 @@ class CaseAutomationIntegrationTests(TransactionTestCase):
         self.assertEqual(case.status, ResolveCase.Status.IN_PROGRESS)
         self.assertIn("Falha na Automação", case.resolution_notes)
         self.assertIn("Erro na conexão", case.resolution_notes)
+
+    def test_case_creation_does_not_fail_if_automation_fails(self):
+        """Garante que o caso de suporte é criado mesmo se a automação falhar (AC4)."""
+        from unittest.mock import patch
+        
+        # Simula erro crítico na automação (ex: erro de importação ou modelo ausente)
+        with patch('support.services.case_automation_services.import_module', side_effect=ImportError("Appdata indisponível")):
+            case = case_create(
+                user=self.user,
+                title="Caso Robusto",
+                description="Este caso deve ser criado mesmo com erro na automação.",
+                category=ResolveCase.Category.TECHNICAL
+            )
+            
+            # O caso deve ser criado com sucesso
+            self.assertIsNotNone(case.id)
+            # Como a automação falhou, o status deve permanecer OPEN (ou não mudar para IN_PROGRESS)
+            case.refresh_from_db()
+            self.assertEqual(case.status, ResolveCase.Status.OPEN)
