@@ -56,6 +56,21 @@ def trigger_case_automation(*, case: ResolveCase):
         case.status = ResolveCase.Status.IN_PROGRESS
         case.save(update_fields=['status'])
 
+        # Disparar notificação de automação iniciada
+        try:
+            from notifications.services.notification_service import notification_service
+            
+            notification_service.send_with_template(
+                user=case.requester,
+                template_name='tarefa_concluida',
+                context={
+                    'task_id': str(task.id) if task else 'unknown',
+                    'result': 'iniciada',
+                }
+            )
+        except Exception as e:
+            logger.error(f'Erro ao enviar notificação de automação: {e}')
+
         # Log de auditoria: automação concluída com sucesso
         logger.info(
             f"Automação concluída com sucesso para caso {case.id}",

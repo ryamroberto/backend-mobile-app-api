@@ -1,0 +1,10 @@
+{
+  "title": "Automação Concluída",
+  "body": "A tarefa de automação foi concluída com sucesso",
+  "data": {
+    "type": "automation",
+    "action": "completed",
+    "task_id": "{task_id}",
+    "result": "{result}"
+  }
+}

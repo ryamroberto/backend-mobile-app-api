@@ -29,3 +29,4 @@ boto3==1.37.10
 kubernetes==32.0.0
 sentry-sdk==2.22.0
 python-json-logger==2.0.7
+firebase-admin==6.6.0

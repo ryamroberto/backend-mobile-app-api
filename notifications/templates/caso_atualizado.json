@@ -1,0 +1,10 @@
+{
+  "title": "Caso de Suporte Atualizado",
+  "body": "Seu caso de suporte foi atualizado para: {status}",
+  "data": {
+    "type": "support_case",
+    "action": "updated",
+    "case_id": "{case_id}",
+    "new_status": "{status}"
+  }
+}

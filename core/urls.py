@@ -40,7 +40,8 @@ urlpatterns = [
     path('api/v1/profile/', include('profiles.urls')),
     path('api/v1/app/', include('appdata.urls')),
     path('api/v1/support/', include('support.urls')),
-    
+    path('api/v1/notifications/', include('notifications.urls')),
+
     # Health check endpoints para CI/CD e monitoramento
     path('health/', health_check, name='health-check'),
     path('ready/', readiness_check, name='readiness-check'),

@@ -31,6 +31,23 @@ def case_create(
     # Log de auditoria: criação de caso
     log_case_creation(case=case, user=user)
 
+    # Disparar notificação push ao criar caso
+    def _send_notification():
+        """Envia notificação push ao criar caso."""
+        try:
+            from notifications.services.notification_service import notification_service
+            
+            notification_service.send_with_template(
+                user=user,
+                template_name='novo_caso_suporte',
+                context={
+                    'titulo': title,
+                    'case_id': str(case.id),
+                }
+            )
+        except Exception as e:
+            logger.error(f'Erro ao enviar notificação de caso criado: {e}')
+
     # Dispara automação após commit bem-sucedido (AC4: tratamento defensivo)
     def _safe_automation_trigger():
         """Wrapper defensivo para garantir que falhas na automação não quebrem o fluxo."""
@@ -49,6 +66,8 @@ def case_create(
                 exc_info=True
             )
 
+    # Agendar notificações e automação após commit
+    transaction.on_commit(_send_notification)
     transaction.on_commit(_safe_automation_trigger)
 
     return case

@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'appdata',
     'support',
     'common',
+    'notifications',
 ]
 
 AUTH_USER_MODEL = 'users.User'

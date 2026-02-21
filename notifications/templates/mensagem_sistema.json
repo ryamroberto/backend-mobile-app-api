@@ -1,0 +1,8 @@
+{
+  "title": "Mensagem do Sistema",
+  "body": "{mensagem}",
+  "data": {
+    "type": "system",
+    "action": "message"
+  }
+}

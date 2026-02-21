@@ -1,0 +1,10 @@
+{
+  "title": "Novo Caso de Suporte Criado",
+  "body": "Um novo caso de suporte foi criado: {titulo}",
+  "data": {
+    "type": "support_case",
+    "action": "created",
+    "case_id": "{case_id}",
+    "case_title": "{titulo}"
+  }
+}
