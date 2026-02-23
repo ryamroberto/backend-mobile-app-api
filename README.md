@@ -337,10 +337,4 @@ project/
 3. Push: `git push origin feature/nova-feature`
 4. Abrir Pull Request
 
-## 📄 Licença
 
-BSD License
-
----
-
-*— Dex, sempre construindo 🔨*
