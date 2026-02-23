@@ -12,3 +12,7 @@ venv/
 .aios-core/
 .gemini/tmp/
 logs/
+"# AIOS Framework (privado)"  
+"aios/"  
+".qwen/"  
+".gemini/" 
