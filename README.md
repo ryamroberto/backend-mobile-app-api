@@ -330,11 +330,6 @@ project/
     └── PRD.md           # Product Requirements
 ```
 
-## 🤝 Contribuição
 
-1. Criar branch feature: `git checkout -b feature/nova-feature`
-2. Commit: `git commit -m 'feat: adiciona nova feature'`
-3. Push: `git push origin feature/nova-feature`
-4. Abrir Pull Request
 
 
